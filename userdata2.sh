@@ -9,7 +9,7 @@ INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 apt install -y awscli
 
 # Download the images from S3 bucket
-#aws s3 cp s3://myterraformprojectbucket2023/project.webp /var/www/html/project.png --acl public-read
+aws s3 cp s3://my-tf-test-bucket-gloria/test.png /var/www/html/project.png --acl public-read
 
 # Create a simple HTML file with the portfolio content and display the images
 cat <<EOF > /var/www/html/index.html

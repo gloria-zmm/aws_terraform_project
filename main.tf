@@ -75,6 +75,61 @@ resource "aws_s3_bucket" "example" {
   }
 }
 
+
+# create IAM Role 
+resource "aws_iam_role" "ec2_s3_role" {
+  name = "ec2-s3-access-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# create policy to access  S3
+resource "aws_iam_policy" "s3_access_policy" {
+  name        = "s3-access-policy"
+  description = "Policy for EC2 to access S3"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.example.arn,
+          "${aws_s3_bucket.example.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# attach policy to role
+resource "aws_iam_role_policy_attachment" "s3_policy_attach" {
+  role       = aws_iam_role.ec2_s3_role.name
+  policy_arn = aws_iam_policy.s3_access_policy.arn
+}
+
+# create instance profile
+resource "aws_iam_instance_profile" "ec2_s3_profile" {
+  name = "ec2-s3-instance-profile"
+  role = aws_iam_role.ec2_s3_role.name
+}
+
+
 resource "aws_instance" "webserver1" {
 
     ami = "ami-0360c520857e3138f"
@@ -82,6 +137,7 @@ resource "aws_instance" "webserver1" {
     vpc_security_group_ids = [aws_security_group.allow_tls.id]
     subnet_id = aws_subnet.sunbet1.id
     user_data = base64encode(file("userdata1.sh"))
+    iam_instance_profile = aws_iam_instance_profile.ec2_s3_profile.name
 }
 
 
@@ -92,6 +148,7 @@ resource "aws_instance" "webserver2" {
     vpc_security_group_ids = [aws_security_group.allow_tls.id]
     subnet_id = aws_subnet.sunbet2.id
     user_data = base64encode(file("userdata2.sh"))
+    iam_instance_profile = aws_iam_instance_profile.ec2_s3_profile.name
 }
 
 
